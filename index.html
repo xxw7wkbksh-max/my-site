@@ -1,0 +1,837 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>テトリス</title>
+
+<style>
+body {
+  margin: 0;
+  background: #111;
+  color: white;
+  font-family: Arial, sans-serif;
+  text-align: center;
+}
+
+h1 {
+  margin: 15px;
+}
+
+canvas {
+  background: #000;
+  border: 3px solid #555;
+  width: 300px;
+  height: 600px;
+}
+
+.info {
+  font-size: 20px;
+  margin: 10px;
+}
+
+button {
+  font-size: 20px;
+  padding: 10px 25px;
+  margin: 5px;
+}
+
+.controls {
+  margin-top: 10px;
+  color: #ccc;
+}
+</style>
+</head>
+
+<body>
+
+<h1>テトリス</h1>
+
+<canvas id="game" width="300" height="600"></canvas>
+
+<div class="info">
+スコア：<span id="score">0</span>
+</div>
+
+<div class="controls">
+← →：移動　
+↓：落下　
+↑：回転　
+SPACE：一気に落とす
+</div>
+
+<button onclick="restart()">リスタート</button>
+
+<script>
+
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
+
+const COLS = 10;
+const ROWS = 20;
+const BLOCK = 30;
+
+ctx.scale(BLOCK, BLOCK);
+
+
+// ブロックの色
+const colors = [
+  null,
+  "#00ffff",
+  "#ffff00",
+  "#aa00ff",
+  "#00ff00",
+  "#ff0000",
+  "#0000ff",
+  "#ff8800"
+];
+
+
+// 7種類のブロック
+const pieces = [
+
+  // I
+  [
+    [1,1,1,1]
+  ],
+
+  // O
+  [
+    [2,2],
+    [2,2]
+  ],
+
+  // T
+  [
+    [0,3,0],
+    [3,3,3]
+  ],
+
+  // S
+  [
+    [0,4,4],
+    [4,4,0]
+  ],
+
+  // Z
+  [
+    [5,5,0],
+    [0,5,5]
+  ],
+
+  // J
+  [
+    [6,0,0],
+    [6,6,6]
+  ],
+
+  // L
+  [
+    [0,0,7],
+    [7,7,7]
+  ]
+];
+
+
+let board;
+let player;
+let score;
+let gameOver;
+
+let dropCounter = 0;
+let dropInterval = 800;
+let lastTime = 0;
+
+
+// ========================
+// ボード作成
+// ========================
+
+function createBoard() {
+
+  return Array.from(
+    {length: ROWS},
+    () => Array(COLS).fill(0)
+  );
+
+}
+
+
+// ========================
+// 新しいブロック
+// ========================
+
+function createPiece() {
+
+  const original =
+    pieces[
+      Math.floor(
+        Math.random() * pieces.length
+      )
+    ];
+
+  return {
+
+    matrix: original.map(
+      row => [...row]
+    ),
+
+    x: Math.floor(COLS / 2) -
+       Math.ceil(original[0].length / 2),
+
+    y: 0
+  };
+
+}
+
+
+// ========================
+// 描画
+// ========================
+
+function drawMatrix(matrix, offset) {
+
+  matrix.forEach((row, y) => {
+
+    row.forEach((value, x) => {
+
+      if (value !== 0) {
+
+        ctx.fillStyle =
+          colors[value];
+
+        ctx.fillRect(
+          x + offset.x,
+          y + offset.y,
+          1,
+          1
+        );
+
+        ctx.strokeStyle = "#222";
+        ctx.lineWidth = 0.05;
+
+        ctx.strokeRect(
+          x + offset.x,
+          y + offset.y,
+          1,
+          1
+        );
+      }
+
+    });
+
+  });
+
+}
+
+
+function draw() {
+
+  ctx.fillStyle = "#000";
+
+  ctx.fillRect(
+    0,
+    0,
+    COLS,
+    ROWS
+  );
+
+  drawMatrix(
+    board,
+    {x:0, y:0}
+  );
+
+  drawMatrix(
+    player.matrix,
+    {
+      x: player.x,
+      y: player.y
+    }
+  );
+
+}
+
+
+// ========================
+// 当たり判定
+// ========================
+
+function collide(board, player) {
+
+  const matrix =
+    player.matrix;
+
+  for (
+    let y = 0;
+    y < matrix.length;
+    y++
+  ) {
+
+    for (
+      let x = 0;
+      x < matrix[y].length;
+      x++
+    ) {
+
+      if (matrix[y][x] === 0) {
+        continue;
+      }
+
+      const px =
+        x + player.x;
+
+      const py =
+        y + player.y;
+
+
+      // 左右の壁
+      if (
+        px < 0 ||
+        px >= COLS
+      ) {
+        return true;
+      }
+
+
+      // 床
+      if (
+        py >= ROWS
+      ) {
+        return true;
+      }
+
+
+      // 他のブロック
+      if (
+        py >= 0 &&
+        board[py][px] !== 0
+      ) {
+        return true;
+      }
+
+    }
+
+  }
+
+  return false;
+
+}
+
+
+// ========================
+// ブロックを固定
+// ========================
+
+function merge() {
+
+  player.matrix.forEach(
+    (row, y) => {
+
+      row.forEach(
+        (value, x) => {
+
+          if (value !== 0) {
+
+            board[
+              y + player.y
+            ][
+              x + player.x
+            ] = value;
+
+          }
+
+        }
+      );
+
+    }
+  );
+
+}
+
+
+// ========================
+// ★ ブロックを90度回転
+// ========================
+
+function rotateMatrix(matrix) {
+
+  // 行と列を入れ替える
+  for (
+    let y = 0;
+    y < matrix.length;
+    y++
+  ) {
+
+    for (
+      let x = 0;
+      x < y;
+      x++
+    ) {
+
+      [
+        matrix[x][y],
+        matrix[y][x]
+      ] =
+      [
+        matrix[y][x],
+        matrix[x][y]
+      ];
+
+    }
+
+  }
+
+
+  // 左右を反転
+  matrix.forEach(
+    row => row.reverse()
+  );
+
+}
+
+
+// ========================
+// ★ ↑を押した時の回転
+// ========================
+
+function playerRotate() {
+
+  // Oブロックは回転しても見た目が変わらない
+  if (
+    player.matrix.length === 2 &&
+    player.matrix[0].length === 2
+  ) {
+    return;
+  }
+
+
+  // 回転前を保存
+  const oldMatrix =
+    player.matrix.map(
+      row => [...row]
+    );
+
+  const oldX =
+    player.x;
+
+
+  // ★ 現在のブロックを90度回す
+  rotateMatrix(
+    player.matrix
+  );
+
+
+  // 回転して壁にぶつかった場合
+  // 左右にずらしてみる
+
+  const offsets = [
+    0,
+    -1,
+    1,
+    -2,
+    2
+  ];
+
+
+  for (
+    const offset of offsets
+  ) {
+
+    player.x =
+      oldX + offset;
+
+    if (
+      !collide(
+        board,
+        player
+      )
+    ) {
+
+      return;
+
+    }
+
+  }
+
+
+  // 回転できなかった場合
+  // 元の形に戻す
+
+  player.matrix =
+    oldMatrix;
+
+  player.x =
+    oldX;
+
+}
+
+
+// ========================
+// 左右移動
+// ========================
+
+function playerMove(direction) {
+
+  player.x += direction;
+
+  if (
+    collide(
+      board,
+      player
+    )
+  ) {
+
+    player.x -= direction;
+
+  }
+
+}
+
+
+// ========================
+// 下に落とす
+// ========================
+
+function playerDrop() {
+
+  player.y++;
+
+  if (
+    collide(
+      board,
+      player
+    )
+  ) {
+
+    player.y--;
+
+    merge();
+
+    clearLines();
+
+    playerReset();
+
+  }
+
+  dropCounter = 0;
+
+}
+
+
+// ========================
+// 一気に落とす
+// ========================
+
+function hardDrop() {
+
+  while (
+    !collide(
+      board,
+      player
+    )
+  ) {
+
+    player.y++;
+
+  }
+
+  player.y--;
+
+  merge();
+
+  clearLines();
+
+  playerReset();
+
+  dropCounter = 0;
+
+}
+
+
+// ========================
+// 次のブロック
+// ========================
+
+function playerReset() {
+
+  player =
+    createPiece();
+
+  if (
+    collide(
+      board,
+      player
+    )
+  ) {
+
+    gameOver = true;
+
+  }
+
+}
+
+
+// ========================
+// ラインを消す
+// ========================
+
+function clearLines() {
+
+  let lines = 0;
+
+
+  outer:
+  for (
+    let y = ROWS - 1;
+    y >= 0;
+    y--
+  ) {
+
+    for (
+      let x = 0;
+      x < COLS;
+      x++
+    ) {
+
+      if (
+        board[y][x] === 0
+      ) {
+
+        continue outer;
+
+      }
+
+    }
+
+
+    board.splice(
+      y,
+      1
+    );
+
+    board.unshift(
+      Array(COLS).fill(0)
+    );
+
+    y--;
+
+    lines++;
+
+  }
+
+
+  if (lines > 0) {
+
+    const points = [
+      0,
+      100,
+      300,
+      500,
+      800
+    ];
+
+    score +=
+      points[lines];
+
+    document.getElementById(
+      "score"
+    ).textContent =
+      score;
+
+  }
+
+}
+
+
+// ========================
+// ゲーム更新
+// ========================
+
+function update(time = 0) {
+
+  if (gameOver) {
+
+    draw();
+
+    ctx.fillStyle =
+      "rgba(0,0,0,0.75)";
+
+    ctx.fillRect(
+      0,
+      7,
+      COLS,
+      6
+    );
+
+    ctx.fillStyle =
+      "white";
+
+    ctx.font =
+      "1px Arial";
+
+    ctx.textAlign =
+      "center";
+
+    ctx.fillText(
+      "GAME OVER",
+      COLS / 2,
+      10
+    );
+
+    return;
+
+  }
+
+
+  const deltaTime =
+    time - lastTime;
+
+  lastTime =
+    time;
+
+  dropCounter +=
+    deltaTime;
+
+
+  if (
+    dropCounter >
+    dropInterval
+  ) {
+
+    playerDrop();
+
+  }
+
+
+  draw();
+
+  requestAnimationFrame(
+    update
+  );
+
+}
+
+
+// ========================
+// キーボード操作
+// ========================
+
+document.addEventListener(
+  "keydown",
+  event => {
+
+    if (gameOver) {
+      return;
+    }
+
+
+    // ←
+    if (
+      event.key ===
+      "ArrowLeft"
+    ) {
+
+      event.preventDefault();
+
+      playerMove(-1);
+
+    }
+
+
+    // →
+    else if (
+      event.key ===
+      "ArrowRight"
+    ) {
+
+      event.preventDefault();
+
+      playerMove(1);
+
+    }
+
+
+    // ↓
+    else if (
+      event.key ===
+      "ArrowDown"
+    ) {
+
+      event.preventDefault();
+
+      playerDrop();
+
+    }
+
+
+    // ★ ↑
+    // ブロックの種類を変えない
+    // 現在のブロックを90度回転する
+    else if (
+      event.key ===
+      "ArrowUp"
+    ) {
+
+      event.preventDefault();
+
+      playerRotate();
+
+    }
+
+
+    // SPACE
+    else if (
+      event.code ===
+      "Space"
+    ) {
+
+      event.preventDefault();
+
+      hardDrop();
+
+    }
+
+  }
+);
+
+
+// ========================
+// リスタート
+// ========================
+
+function restart() {
+
+  board =
+    createBoard();
+
+  score = 0;
+
+  gameOver = false;
+
+  dropCounter = 0;
+
+  dropInterval = 800;
+
+  lastTime = 0;
+
+  document.getElementById(
+    "score"
+  ).textContent = "0";
+
+  playerReset();
+
+  update();
+
+}
+
+
+// ========================
+// 開始
+// ========================
+
+restart();
+
+</script>
+
+</body>
+</html>
