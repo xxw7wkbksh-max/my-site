@@ -1,0 +1,330 @@
+```html
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>高性能電卓</title>
+
+    <style>
+        body {
+            font-family: sans-serif;
+            background: #222;
+            color: white;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+        }
+
+        .calculator {
+            width: 330px;
+            background: #333;
+            padding: 20px;
+            border-radius: 20px;
+        }
+
+        #display {
+            width: 100%;
+            box-sizing: border-box;
+            height: 70px;
+            font-size: 28px;
+            text-align: right;
+            padding: 10px;
+            margin-bottom: 15px;
+            border-radius: 10px;
+            border: none;
+        }
+
+        .buttons {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 8px;
+        }
+
+        button {
+            height: 60px;
+            font-size: 20px;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+        }
+
+        button:active {
+            transform: scale(0.95);
+        }
+
+        .operator {
+            background: orange;
+            color: white;
+        }
+
+        .clear {
+            background: crimson;
+            color: white;
+        }
+
+        .equal {
+            background: seagreen;
+            color: white;
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="calculator">
+
+    <input id="display" type="text" value="0" readonly>
+
+    <div class="buttons">
+
+        <button class="clear" onclick="clearDisplay()">C</button>
+        <button onclick="backspace()">⌫</button>
+        <button onclick="percent()">%</button>
+        <button class="operator" onclick="inputOperator('/')">÷</button>
+
+        <button onclick="inputNumber('7')">7</button>
+        <button onclick="inputNumber('8')">8</button>
+        <button onclick="inputNumber('9')">9</button>
+        <button class="operator" onclick="inputOperator('*')">×</button>
+
+        <button onclick="inputNumber('4')">4</button>
+        <button onclick="inputNumber('5')">5</button>
+        <button onclick="inputNumber('6')">6</button>
+        <button class="operator" onclick="inputOperator('-')">−</button>
+
+        <button onclick="inputNumber('1')">1</button>
+        <button onclick="inputNumber('2')">2</button>
+        <button onclick="inputNumber('3')">3</button>
+        <button class="operator" onclick="inputOperator('+')">+</button>
+
+        <button onclick="inputNumber('0')">0</button>
+        <button onclick="inputDecimal()">.</button>
+        <button onclick="square()">x²</button>
+        <button class="equal" onclick="calculate()">=</button>
+
+    </div>
+</div>
+
+
+<script>
+
+    // =========================
+    // 変数
+    // =========================
+
+    let currentNumber = "";
+    let previousNumber = "";
+    let operator = "";
+    let shouldResetDisplay = false;
+
+
+    // =========================
+    // 画面を取得
+    // =========================
+
+    const display = document.getElementById("display");
+
+
+    // =========================
+    // 数字を入力
+    // =========================
+
+    function inputNumber(number) {
+
+        if (shouldResetDisplay) {
+            currentNumber = "";
+            shouldResetDisplay = false;
+        }
+
+        currentNumber += number;
+
+        display.value = currentNumber;
+    }
+
+
+    // =========================
+    // 小数点
+    // =========================
+
+    function inputDecimal() {
+
+        if (shouldResetDisplay) {
+            currentNumber = "";
+            shouldResetDisplay = false;
+        }
+
+        if (!currentNumber.includes(".")) {
+
+            if (currentNumber === "") {
+                currentNumber = "0";
+            }
+
+            currentNumber += ".";
+
+            display.value = currentNumber;
+        }
+    }
+
+
+    // =========================
+    // 演算子
+    // =========================
+
+    function inputOperator(selectedOperator) {
+
+        if (currentNumber === "") {
+            return;
+        }
+
+        if (previousNumber !== "") {
+            calculate();
+        }
+
+        previousNumber = currentNumber;
+        operator = selectedOperator;
+
+        shouldResetDisplay = true;
+    }
+
+
+    // =========================
+    // 計算
+    // =========================
+
+    function calculate() {
+
+        if (
+            previousNumber === "" ||
+            currentNumber === "" ||
+            operator === ""
+        ) {
+            return;
+        }
+
+        const number1 = Number(previousNumber);
+        const number2 = Number(currentNumber);
+
+        let result;
+
+
+        if (operator === "+") {
+            result = number1 + number2;
+
+        } else if (operator === "-") {
+            result = number1 - number2;
+
+        } else if (operator === "*") {
+            result = number1 * number2;
+
+        } else if (operator === "/") {
+
+            if (number2 === 0) {
+                display.value = "エラー";
+                resetCalculator();
+                return;
+            }
+
+            result = number1 / number2;
+        }
+
+
+        currentNumber = String(result);
+
+        display.value = currentNumber;
+
+        previousNumber = "";
+        operator = "";
+
+        shouldResetDisplay = true;
+    }
+
+
+    // =========================
+    // 全消去
+    // =========================
+
+    function clearDisplay() {
+
+        currentNumber = "";
+        previousNumber = "";
+        operator = "";
+
+        display.value = "0";
+    }
+
+
+    // =========================
+    // 1文字削除
+    // =========================
+
+    function backspace() {
+
+        currentNumber = currentNumber.slice(0, -1);
+
+        if (currentNumber === "") {
+            display.value = "0";
+        } else {
+            display.value = currentNumber;
+        }
+    }
+
+
+    // =========================
+    // パーセント
+    // =========================
+
+    function percent() {
+
+        if (currentNumber === "") {
+            return;
+        }
+
+        const number = Number(currentNumber);
+
+        currentNumber = String(number / 100);
+
+        display.value = currentNumber;
+    }
+
+
+    // =========================
+    // 2乗
+    // =========================
+
+    function square() {
+
+        if (currentNumber === "") {
+            return;
+        }
+
+        const number = Number(currentNumber);
+
+        currentNumber = String(number ** 2);
+
+        display.value = currentNumber;
+
+        shouldResetDisplay = true;
+    }
+
+
+    // =========================
+    // 電卓をリセット
+    // =========================
+
+    function resetCalculator() {
+
+        currentNumber = "";
+        previousNumber = "";
+        operator = "";
+
+        shouldResetDisplay = true;
+    }
+
+</script>
+
+</body>
+</html>
+```
