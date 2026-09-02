@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>ルーレットおみくじ</title>
+
+  <style>
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+
+      background:
+        linear-gradient(
+          135deg,
+          #ffecd2,
+          #fcb69f
+        );
+
+      font-family:
+        "Yu Gothic",
+        "Hiragino Kaku Gothic ProN",
+        sans-serif;
+
+      text-align: center;
+    }
+
+    .container {
+      background: white;
+      width: 90%;
+      max-width: 450px;
+
+      padding: 30px 20px;
+
+      border-radius: 25px;
+
+      box-shadow:
+        0 10px 30px
+        rgba(0, 0, 0, 0.2);
+    }
+
+    h1 {
+      margin-top: 0;
+      color: #d35400;
+      font-size: 32px;
+    }
+
+    .roulette {
+      width: 280px;
+      height: 280px;
+
+      margin: 20px auto;
+
+      position: relative;
+    }
+
+    .wheel {
+      width: 280px;
+      height: 280px;
+
+      border-radius: 50%;
+
+      border: 8px solid #fff;
+
+      box-shadow:
+        0 5px 15px
+        rgba(0, 0, 0, 0.3);
+
+      background: conic-gradient(
+        #ff5252 0deg 45deg,
+        #ffca28 45deg 90deg,
+        #66bb6a 90deg 135deg,
+        #42a5f5 135deg 180deg,
+        #ab47bc 180deg 225deg,
+        #ff7043 225deg 270deg,
+        #26a69a 270deg 315deg,
+        #ec407a 315deg 360deg
+      );
+
+      transition:
+        transform 4s
+        cubic-bezier(0.15, 0.8, 0.2, 1);
+    }
+
+    .pointer {
+      position: absolute;
+
+      top: -18px;
+      left: 50%;
+
+      transform:
+        translateX(-50%);
+
+      width: 0;
+      height: 0;
+
+      border-left: 18px solid transparent;
+      border-right: 18px solid transparent;
+
+      border-top: 40px solid #333;
+
+      z-index: 10;
+    }
+
+    .center {
+      position: absolute;
+
+      top: 50%;
+      left: 50%;
+
+      transform:
+        translate(-50%, -50%);
+
+      width: 65px;
+      height: 65px;
+
+      border-radius: 50%;
+
+      background: white;
+
+      border: 5px solid #555;
+
+      z-index: 5;
+
+      display: flex;
+      justify-content: center;
+      align-items: center;
+
+      font-size: 20px;
+      font-weight: bold;
+    }
+
+    button {
+      border: none;
+
+      background: #e67e22;
+      color: white;
+
+      font-size: 22px;
+      font-weight: bold;
+
+      padding: 15px 45px;
+
+      border-radius: 50px;
+
+      cursor: pointer;
+
+      box-shadow:
+        0 5px 0 #b85c00;
+
+      transition:
+        0.1s;
+    }
+
+    button:hover {
+      background: #f39c12;
+    }
+
+    button:active {
+      transform:
+        translateY(5px);
+
+      box-shadow:
+        0 0 0 #b85c00;
+    }
+
+    button:disabled {
+      background: #aaa;
+      box-shadow: none;
+      cursor: not-allowed;
+    }
+
+    #result {
+      margin-top: 25px;
+
+      min-height: 80px;
+
+      display: flex;
+      justify-content: center;
+      align-items: center;
+
+      flex-direction: column;
+    }
+
+    .result-title {
+      font-size: 18px;
+      color: #777;
+    }
+
+    .result-text {
+      font-size: 40px;
+      font-weight: bold;
+
+      color: #d35400;
+
+      animation:
+        pop 0.5s;
+    }
+
+    @keyframes pop {
+      0% {
+        transform: scale(0);
+      }
+
+      70% {
+        transform: scale(1.2);
+      }
+
+      100% {
+        transform: scale(1);
+      }
+    }
+
+    .message {
+      margin-top: 10px;
+      color: #666;
+    }
+  </style>
+</head>
+
+<body>
+
+<div class="container">
+
+  <h1>🎯 ルーレットおみくじ</h1>
+
+  <div class="roulette">
+
+    <div class="pointer"></div>
+
+    <div
+      id="wheel"
+      class="wheel">
+    </div>
+
+    <div class="center">
+      🎯
+    </div>
+
+  </div>
+
+  <button
+    id="startButton"
+    onclick="startRoulette()">
+    ルーレットを回す！
+  </button>
+
+  <div id="result">
+
+    <div class="result-title">
+      今日の運勢は……
+    </div>
+
+    <div
+      id="resultText"
+      class="result-text">
+      ？
+    </div>
+
+    <div
+      id="message"
+      class="message">
+    </div>
+
+  </div>
+
+</div>
+
+
+<script>
+
+  // =========================
+  // おみくじの結果
+  // =========================
+
+  const fortunes = [
+    {
+      name: "大吉",
+      message: "やるやん",
+      color: "#e74c3c"
+    },
+
+    {
+      name: "中吉",
+      message: "いいほうやん",
+      color: "#f39c12"
+    },
+
+    {
+      name: "小吉",
+      message: "まあまあ",
+      color: "#27ae60"
+    },
+
+    {
+      name: "吉",
+      message: "普通やな(笑)",
+      color: "#2980b9"
+    },
+
+    {
+      name: "末吉",
+      message: "中の下",
+      color: "#8e44ad"
+    },
+
+    {
+      name: "半吉",
+      message: "あたりの中のハズレ(笑)。",
+      color: "#d35400"
+    },
+
+    {
+      name: "凶",
+      message: "ハズレー(笑)。",
+      color: "#16a085"
+    },
+
+    {
+      name: "大凶",
+      message: "ドンマイ(笑)",
+      color: "#c0392b"
+    }
+  ];
+
+
+  let rotation = 0;
+
+  let spinning = false;
+
+
+  // =========================
+  // ルーレットを回す
+  // =========================
+
+  function startRoulette() {
+
+    // 回転中なら何もしない
+    if (spinning) {
+      return;
+    }
+
+    spinning = true;
+
+    const button =
+      document.getElementById(
+        "startButton"
+      );
+
+    const resultText =
+      document.getElementById(
+        "resultText"
+      );
+
+    const message =
+      document.getElementById(
+        "message"
+      );
+
+
+    button.disabled = true;
+
+    resultText.textContent = "・・・";
+    resultText.style.color = "#d35400";
+
+    message.textContent = "";
+
+
+    // =========================
+    // ランダムな結果を決める
+    // =========================
+
+    const resultIndex =
+      Math.floor(
+        Math.random() *
+        fortunes.length
+      );
+
+
+    // 1周45度
+    const anglePerItem =
+      360 / fortunes.length;
+
+
+    // 選ばれた場所
+    const targetAngle =
+      resultIndex *
+      anglePerItem +
+      anglePerItem / 2;
+
+
+    // 何周も回してから結果位置へ
+    const extraRotation =
+      360 * 6;
+
+
+    /*
+      pointerは上を指しているので、
+      選ばれた場所が上に来るように
+      回転角度を計算する。
+    */
+
+    const finalRotation =
+      extraRotation +
+      (360 - targetAngle);
+
+
+    rotation += finalRotation;
+
+
+    const wheel =
+      document.getElementById(
+        "wheel"
+      );
+
+
+    wheel.style.transform =
+      `rotate(${rotation}deg)`;
+
+
+    // =========================
+    // 回転終了後
+    // =========================
+
+    setTimeout(
+      () => {
+
+        const result =
+          fortunes[resultIndex];
+
+
+        resultText.textContent =
+          result.name;
+
+
+        resultText.style.color =
+          result.color;
+
+
+        message.textContent =
+          result.message;
+
+
+        spinning = false;
+
+        button.disabled = false;
+
+      },
+      4000
+    );
+
+  }
+
+</script>
+
+</body>
+</html>
