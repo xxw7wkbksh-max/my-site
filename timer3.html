@@ -1,0 +1,1209 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>TRT10風 トレーニングタイマー</title>
+
+<style>
+*{
+  box-sizing:border-box;
+}
+
+html,
+body{
+  margin:0;
+  padding:0;
+  background:#111;
+  color:#fff;
+  font-family:Arial,"Hiragino Kaku Gothic ProN","Yu Gothic",sans-serif;
+}
+
+body{
+  padding:10px;
+}
+
+.container{
+  max-width:700px;
+  margin:auto;
+}
+
+h1{
+  text-align:center;
+  font-size:24px;
+  margin:10px 0 15px;
+}
+
+.modeButtons{
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+  gap:6px;
+  margin-bottom:10px;
+}
+
+button{
+  border:0;
+  border-radius:8px;
+  padding:10px 8px;
+  background:#333;
+  color:#fff;
+  font-size:14px;
+  cursor:pointer;
+}
+
+button:active{
+  transform:scale(.97);
+}
+
+button.good{
+  background:#087f23;
+}
+
+button.danger{
+  background:#a71919;
+}
+
+button.blue{
+  background:#1559a6;
+}
+
+.panel{
+  display:none;
+  background:#1b1b1b;
+  border-radius:12px;
+  padding:12px;
+  margin-bottom:10px;
+}
+
+.panel.active{
+  display:block;
+}
+
+.display{
+  text-align:center;
+  font-size:70px;
+  font-weight:bold;
+  letter-spacing:2px;
+  margin:15px 0;
+}
+
+.row{
+  display:flex;
+  flex-wrap:wrap;
+  gap:6px;
+}
+
+.row > *{
+  flex:1;
+  min-width:90px;
+}
+
+input,
+select{
+  width:100%;
+  padding:10px;
+  border:1px solid #555;
+  border-radius:7px;
+  background:#222;
+  color:#fff;
+  font-size:18px;
+}
+
+label{
+  display:block;
+  margin-bottom:5px;
+}
+
+.status{
+  text-align:center;
+  color:#aaa;
+  min-height:24px;
+  margin:8px 0;
+}
+
+.programRow{
+  display:grid;
+  grid-template-columns:55px 1fr 1fr 90px;
+  gap:5px;
+  align-items:center;
+  margin-bottom:5px;
+}
+
+.programRow input{
+  min-width:0;
+}
+
+.score{
+  text-align:center;
+  font-size:55px;
+  font-weight:bold;
+  margin:10px;
+}
+
+.clock{
+  text-align:center;
+  font-size:55px;
+  font-weight:bold;
+  margin:20px 0;
+}
+
+.small{
+  font-size:13px;
+  color:#aaa;
+}
+
+@media(max-width:500px){
+  .modeButtons{
+    grid-template-columns:repeat(2,1fr);
+  }
+
+  .display{
+    font-size:55px;
+  }
+
+  .programRow{
+    grid-template-columns:45px 1fr 1fr;
+  }
+
+  .programRow button{
+    grid-column:span 3;
+  }
+
+  .clock{
+    font-size:45px;
+  }
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+<h1>TRT10風 トレーニングタイマー</h1>
+
+<div class="modeButtons">
+  <button onclick="showMode('timer')">タイマー</button>
+  <button onclick="showMode('stopwatch')">ストップウォッチ</button>
+  <button onclick="showMode('upcount')">アップカウント</button>
+  <button onclick="showMode('30sec')">30秒タイマー</button>
+  <button onclick="showMode('program')">プログラム</button>
+  <button onclick="showMode('score')">スコア</button>
+  <button onclick="showMode('clock')">時計</button>
+</div>
+
+<!-- タイマー -->
+<div id="timer" class="panel active">
+
+  <div class="display" id="mainDisplay">00:00</div>
+
+  <div class="row">
+    <div>
+      <label>分</label>
+      <input id="timerMin" type="number" min="0" value="0" oninput="renderTimerInput()">
+    </div>
+
+    <div>
+      <label>秒</label>
+      <input id="timerSec" type="number" min="0" max="59" value="0" oninput="renderTimerInput()">
+    </div>
+  </div>
+
+  <div class="row" style="margin-top:8px">
+    <button onclick="adjustTimer(1)">＋1秒</button>
+    <button onclick="adjustTimer(30)">＋30秒</button>
+    <button onclick="adjustTimer(60)">＋1分</button>
+    <button onclick="adjustTimer(-1)">−1秒</button>
+    <button onclick="adjustTimer(-30)">−30秒</button>
+    <button onclick="adjustTimer(-60)">−1分</button>
+    <button class="danger" onclick="resetTimerInput()">0に戻す</button>
+  </div>
+
+  <div class="row" style="margin-top:8px">
+    <button class="good" onclick="confirmTimer()">決定</button>
+    <button onclick="startTimer()">スタート</button>
+    <button onclick="pauseTimer()">一時停止</button>
+    <button class="danger" onclick="resetTimer()">リセット</button>
+  </div>
+
+  <div class="status" id="timerStatus"></div>
+
+</div>
+
+<!-- ストップウォッチ -->
+<div id="stopwatch" class="panel">
+
+  <div class="display" id="stopwatchDisplay">00:00.00</div>
+
+  <div class="row">
+    <button class="good" onclick="startStopwatch()">スタート</button>
+    <button onclick="pauseStopwatch()">一時停止</button>
+    <button onclick="splitStopwatch()">スプリット</button>
+    <button class="danger" onclick="resetStopwatch()">リセット</button>
+  </div>
+
+  <div id="splitList" class="small"></div>
+
+</div>
+
+<!-- アップカウント -->
+<div id="upcount" class="panel">
+
+  <div class="display" id="upcountDisplay">00:00</div>
+
+  <div class="row">
+    <button class="good" onclick="startUpcount()">スタート</button>
+    <button onclick="pauseUpcount()">一時停止</button>
+    <button class="danger" onclick="resetUpcount()">リセット</button>
+  </div>
+
+</div>
+
+<!-- 30秒タイマー -->
+<div id="30sec" class="panel">
+
+  <div class="display" id="thirtyDisplay">00:30</div>
+
+  <div class="row">
+    <button class="good" onclick="startThirty()">スタート</button>
+    <button onclick="pauseThirty()">一時停止</button>
+    <button class="danger" onclick="resetThirty()">リセット</button>
+  </div>
+
+</div>
+
+<!-- プログラム -->
+<div id="program" class="panel">
+
+  <h3>プログラムタイマー</h3>
+
+  <div class="small">
+    P1〜P9に時間を設定できます。
+  </div>
+
+  <div id="programInputs" style="margin-top:10px"></div>
+
+  <div class="row" style="margin-top:10px">
+    <div>
+      <label>繰り返し回数</label>
+      <input id="repeatCount" type="number" min="1" value="1">
+    </div>
+
+    <div>
+      <label>無限ループ</label>
+      <button id="endlessButton" onclick="toggleEndless()">OFF</button>
+    </div>
+  </div>
+
+  <div class="row" style="margin-top:10px">
+    <button class="good" onclick="startProgram()">スタート</button>
+    <button onclick="pauseProgram()">一時停止</button>
+    <button class="danger" onclick="resetProgram()">リセット</button>
+  </div>
+
+  <div class="display" id="programDisplay">00:00</div>
+
+  <div class="status" id="programStatus"></div>
+
+</div>
+
+<!-- スコア -->
+<div id="score" class="panel">
+
+  <h3 style="text-align:center">スコア</h3>
+
+  <div class="row">
+    <div>
+      <div class="score" id="scoreL">0</div>
+      <button onclick="addScore('L',1)">L ＋1</button>
+      <button onclick="addScore('L',-1)">L −1</button>
+    </div>
+
+    <div>
+      <div class="score" id="scoreR">0</div>
+      <button onclick="addScore('R',1)">R ＋1</button>
+      <button onclick="addScore('R',-1)">R −1</button>
+    </div>
+  </div>
+
+  <div class="row" style="margin-top:10px">
+    <button class="danger" onclick="resetScore()">スコアリセット</button>
+  </div>
+
+</div>
+
+<!-- 時計 -->
+<div id="clock" class="panel">
+
+  <div class="clock" id="clockDisplay">00:00:00</div>
+
+  <div class="row">
+    <div>
+      <label>アラーム時刻</label>
+      <input id="alarmTime" type="time">
+    </div>
+  </div>
+
+  <div class="row" style="margin-top:8px">
+    <button class="good" onclick="setAlarm()">アラーム設定</button>
+    <button class="danger" onclick="cancelAlarm()">解除</button>
+  </div>
+
+  <div class="status" id="clockStatus"></div>
+
+</div>
+
+</div>
+
+<script>
+
+const $ = id => document.getElementById(id);
+
+let timerId = null;
+
+let remaining = 0;
+let running = false;
+
+let stopwatchTime = 0;
+let stopwatchRunning = false;
+let stopwatchId = null;
+let splitTimes = [];
+
+let upcountTime = 0;
+let upcountRunning = false;
+let upcountId = null;
+
+let thirtyTime = 30000;
+let thirtyRunning = false;
+let thirtyId = null;
+
+let programTimes = [];
+let programIndex = 0;
+let programRepeats = 0;
+let endless = false;
+let programRunning = false;
+
+let scoreL = 0;
+let scoreR = 0;
+
+let alarmTime = null;
+
+
+/* =========================
+   共通
+========================= */
+
+function stopAll(){
+  if(timerId !== null){
+    clearInterval(timerId);
+    timerId = null;
+  }
+
+  if(stopwatchId !== null){
+    clearInterval(stopwatchId);
+    stopwatchId = null;
+  }
+
+  if(upcountId !== null){
+    clearInterval(upcountId);
+    upcountId = null;
+  }
+
+  if(thirtyId !== null){
+    clearInterval(thirtyId);
+    thirtyId = null;
+  }
+
+  running = false;
+  stopwatchRunning = false;
+  upcountRunning = false;
+  thirtyRunning = false;
+  programRunning = false;
+}
+
+
+function showMode(mode){
+  stopAll();
+
+  document.querySelectorAll(".panel").forEach(panel => {
+    panel.classList.remove("active");
+  });
+
+  $(mode).classList.add("active");
+
+  if(mode === "timer"){
+    renderTimerInput();
+  }
+
+  if(mode === "program"){
+    renderProgram();
+  }
+}
+
+
+/* =========================
+   タイマー
+========================= */
+
+function getTimerValue(){
+  let min = parseInt($("timerMin").value) || 0;
+  let sec = parseInt($("timerSec").value) || 0;
+
+  if(min < 0){
+    min = 0;
+  }
+
+  if(sec < 0){
+    sec = 0;
+  }
+
+  if(sec > 59){
+    min += Math.floor(sec / 60);
+    sec = sec % 60;
+  }
+
+  $("timerMin").value = min;
+  $("timerSec").value = sec;
+
+  return (min * 60 + sec) * 1000;
+}
+
+
+function formatTime(ms, decimal = false){
+  if(ms < 0){
+    ms = 0;
+  }
+
+  let totalSeconds = Math.floor(ms / 1000);
+
+  let minutes = Math.floor(totalSeconds / 60);
+  let seconds = totalSeconds % 60;
+
+  let result =
+    String(minutes).padStart(2,"0") +
+    ":" +
+    String(seconds).padStart(2,"0");
+
+  if(decimal){
+    let hundredths = Math.floor((ms % 1000) / 10);
+
+    result += "." + String(hundredths).padStart(2,"0");
+  }
+
+  return result;
+}
+
+
+function renderTimerInput(){
+  let total = getTimerValue();
+
+  $("mainDisplay").textContent = formatTime(total,false);
+}
+
+
+function adjustTimer(sec){
+  let total = getTimerValue() + sec * 1000;
+
+  if(total < 0){
+    total = 0;
+  }
+
+  let min = Math.floor(total / 60000);
+  let seconds = Math.floor(total / 1000) % 60;
+
+  $("timerMin").value = min;
+  $("timerSec").value = seconds;
+
+  renderTimerInput();
+}
+
+
+function resetTimerInput(){
+  $("timerMin").value = 0;
+  $("timerSec").value = 0;
+
+  renderTimerInput();
+}
+
+
+function confirmTimer(){
+  remaining = getTimerValue();
+
+  renderTimer();
+
+  $("timerStatus").textContent = "タイマー設定完了";
+}
+
+
+function renderTimer(){
+  $("mainDisplay").textContent = formatTime(remaining,false);
+}
+
+
+function startTimer(){
+  if(running){
+    return;
+  }
+
+  if(remaining <= 0){
+    remaining = getTimerValue();
+  }
+
+  if(remaining <= 0){
+    $("timerStatus").textContent = "時間を設定してください。";
+    return;
+  }
+
+  running = true;
+
+  $("timerStatus").textContent = "実行中";
+
+  timerId = setInterval(() => {
+
+    remaining -= 50;
+
+    if(remaining <= 0){
+      remaining = 0;
+
+      renderTimer();
+
+      clearInterval(timerId);
+      timerId = null;
+      running = false;
+
+      $("timerStatus").textContent = "終了";
+
+      beep();
+
+      return;
+    }
+
+    renderTimer();
+
+  },50);
+}
+
+
+function pauseTimer(){
+  if(timerId !== null){
+    clearInterval(timerId);
+    timerId = null;
+  }
+
+  running = false;
+
+  $("timerStatus").textContent = "一時停止";
+}
+
+
+function resetTimer(){
+  if(timerId !== null){
+    clearInterval(timerId);
+    timerId = null;
+  }
+
+  running = false;
+  remaining = 0;
+
+  $("timerMin").value = 0;
+  $("timerSec").value = 0;
+
+  renderTimerInput();
+
+  $("timerStatus").textContent = "リセット";
+}
+
+
+/* =========================
+   ストップウォッチ
+========================= */
+
+function startStopwatch(){
+  if(stopwatchRunning){
+    return;
+  }
+
+  stopwatchRunning = true;
+
+  let last = performance.now();
+
+  stopwatchId = setInterval(() => {
+
+    let now = performance.now();
+    stopwatchTime += now - last;
+    last = now;
+
+    $("stopwatchDisplay").textContent =
+      formatTime(stopwatchTime,true);
+
+  },10);
+}
+
+
+function pauseStopwatch(){
+  if(stopwatchId !== null){
+    clearInterval(stopwatchId);
+    stopwatchId = null;
+  }
+
+  stopwatchRunning = false;
+}
+
+
+function splitStopwatch(){
+  splitTimes.push(stopwatchTime);
+
+  let html = "";
+
+  splitTimes.forEach((time,index) => {
+    html +=
+      "スプリット " +
+      (index + 1) +
+      "　" +
+      formatTime(time,true) +
+      "<br>";
+  });
+
+  $("splitList").innerHTML = html;
+}
+
+
+function resetStopwatch(){
+  if(stopwatchId !== null){
+    clearInterval(stopwatchId);
+    stopwatchId = null;
+  }
+
+  stopwatchRunning = false;
+  stopwatchTime = 0;
+  splitTimes = [];
+
+  $("stopwatchDisplay").textContent = "00:00.00";
+  $("splitList").innerHTML = "";
+}
+
+
+/* =========================
+   アップカウント
+========================= */
+
+function startUpcount(){
+  if(upcountRunning){
+    return;
+  }
+
+  upcountRunning = true;
+
+  upcountId = setInterval(() => {
+
+    upcountTime += 50;
+
+    $("upcountDisplay").textContent =
+      formatTime(upcountTime,false);
+
+  },50);
+}
+
+
+function pauseUpcount(){
+  if(upcountId !== null){
+    clearInterval(upcountId);
+    upcountId = null;
+  }
+
+  upcountRunning = false;
+}
+
+
+function resetUpcount(){
+  if(upcountId !== null){
+    clearInterval(upcountId);
+    upcountId = null;
+  }
+
+  upcountRunning = false;
+  upcountTime = 0;
+
+  $("upcountDisplay").textContent = "00:00";
+}
+
+
+/* =========================
+   30秒タイマー
+========================= */
+
+function startThirty(){
+  if(thirtyRunning){
+    return;
+  }
+
+  if(thirtyTime <= 0){
+    thirtyTime = 30000;
+  }
+
+  thirtyRunning = true;
+
+  thirtyId = setInterval(() => {
+
+    thirtyTime -= 50;
+
+    if(thirtyTime <= 0){
+      thirtyTime = 0;
+
+      $("thirtyDisplay").textContent = "00:00";
+
+      clearInterval(thirtyId);
+      thirtyId = null;
+      thirtyRunning = false;
+
+      beep();
+
+      return;
+    }
+
+    $("thirtyDisplay").textContent =
+      formatTime(thirtyTime,false);
+
+  },50);
+}
+
+
+function pauseThirty(){
+  if(thirtyId !== null){
+    clearInterval(thirtyId);
+    thirtyId = null;
+  }
+
+  thirtyRunning = false;
+}
+
+
+function resetThirty(){
+  if(thirtyId !== null){
+    clearInterval(thirtyId);
+    thirtyId = null;
+  }
+
+  thirtyRunning = false;
+  thirtyTime = 30000;
+
+  $("thirtyDisplay").textContent = "00:30";
+}
+
+
+/* =========================
+   プログラム
+========================= */
+
+function createProgramInputs(){
+  let html = "";
+
+  for(let i = 1;i <= 9;i++){
+
+    html += `
+      <div class="programRow">
+        <strong>P${i}</strong>
+
+        <input
+          id="programMin${i}"
+          type="number"
+          min="0"
+          value="0"
+          placeholder="分"
+        >
+
+        <input
+          id="programSec${i}"
+          type="number"
+          min="0"
+          value="0"
+          placeholder="秒"
+        >
+
+        <button onclick="addProgramTime(${i})">
+          ＋10秒
+        </button>
+      </div>
+    `;
+  }
+
+  $("programInputs").innerHTML = html;
+}
+
+
+function addProgramTime(index){
+  let min = parseInt($("programMin" + index).value) || 0;
+  let sec = parseInt($("programSec" + index).value) || 0;
+
+  let total = min * 60 + sec + 10;
+
+  $("programMin" + index).value =
+    Math.floor(total / 60);
+
+  $("programSec" + index).value =
+    total % 60;
+}
+
+
+function savePrograms(){
+  programTimes = [];
+
+  for(let i = 1;i <= 9;i++){
+
+    let min =
+      parseInt($("programMin" + i).value) || 0;
+
+    let sec =
+      parseInt($("programSec" + i).value) || 0;
+
+    programTimes.push(
+      (min * 60 + sec) * 1000
+    );
+  }
+}
+
+
+function renderProgram(){
+  if(!$("programInputs").innerHTML){
+    createProgramInputs();
+  }
+
+  if(programTimes.length === 9){
+    for(let i = 1;i <= 9;i++){
+
+      let total = Math.floor(programTimes[i - 1] / 1000);
+
+      $("programMin" + i).value =
+        Math.floor(total / 60);
+
+      $("programSec" + i).value =
+        total % 60;
+    }
+  }
+}
+
+
+function toggleEndless(){
+  endless = !endless;
+
+  $("endlessButton").textContent =
+    endless ? "ON" : "OFF";
+}
+
+
+function startProgram(){
+  if(programRunning){
+    return;
+  }
+
+  savePrograms();
+
+  if(!programTimes.some(x => x > 0)){
+    alert("P1〜P9のどこかに時間を入力してください。");
+    return;
+  }
+
+  programIndex = 0;
+  programRepeats = 0;
+  programRunning = true;
+  running = true;
+
+  $("programStatus").textContent = "P1 実行中";
+
+  startCurrentProgram();
+}
+
+
+function startCurrentProgram(){
+
+  if(programIndex >= programTimes.length){
+    finishProgram();
+    return;
+  }
+
+  let current = programTimes[programIndex];
+
+  if(current <= 0){
+    programIndex++;
+
+    startCurrentProgram();
+
+    return;
+  }
+
+  remaining = current;
+
+  $("programDisplay").textContent =
+    formatTime(remaining,false);
+
+  $("programStatus").textContent =
+    "P" + (programIndex + 1) + " 実行中";
+
+  if(timerId !== null){
+    clearInterval(timerId);
+    timerId = null;
+  }
+
+  timerId = setInterval(programTick,50);
+}
+
+
+function programTick(){
+
+  remaining -= 50;
+
+  if(remaining <= 0){
+
+    remaining = 0;
+
+    $("programDisplay").textContent =
+      "00:00";
+
+    clearInterval(timerId);
+    timerId = null;
+
+    beep();
+
+    programIndex++;
+
+    if(programIndex >= programTimes.length){
+
+      programRepeats++;
+
+      if(endless){
+        programIndex = 0;
+        startCurrentProgram();
+        return;
+      }
+
+      let repeatCount =
+        parseInt($("repeatCount").value) || 1;
+
+      if(programRepeats < repeatCount){
+        programIndex = 0;
+        startCurrentProgram();
+        return;
+      }
+
+      finishProgram();
+      return;
+    }
+
+    startCurrentProgram();
+    return;
+  }
+
+  $("programDisplay").textContent =
+    formatTime(remaining,false);
+}
+
+
+function pauseProgram(){
+
+  if(timerId !== null){
+    clearInterval(timerId);
+    timerId = null;
+  }
+
+  programRunning = false;
+  running = false;
+
+  $("programStatus").textContent = "一時停止";
+}
+
+
+function finishProgram(){
+
+  if(timerId !== null){
+    clearInterval(timerId);
+    timerId = null;
+  }
+
+  programRunning = false;
+  running = false;
+  remaining = 0;
+
+  $("programDisplay").textContent = "00:00";
+  $("programStatus").textContent = "プログラム終了";
+
+  beep();
+}
+
+
+function resetProgram(){
+
+  if(timerId !== null){
+    clearInterval(timerId);
+    timerId = null;
+  }
+
+  programRunning = false;
+  running = false;
+
+  programIndex = 0;
+  programRepeats = 0;
+  remaining = 0;
+
+  $("programDisplay").textContent = "00:00";
+  $("programStatus").textContent = "リセット";
+}
+
+
+/* =========================
+   スコア
+========================= */
+
+function addScore(side,value){
+
+  if(side === "L"){
+    scoreL += value;
+
+    if(scoreL < 0){
+      scoreL = 0;
+    }
+
+    $("scoreL").textContent = scoreL;
+  }
+
+  if(side === "R"){
+    scoreR += value;
+
+    if(scoreR < 0){
+      scoreR = 0;
+    }
+
+    $("scoreR").textContent = scoreR;
+  }
+}
+
+
+function resetScore(){
+
+  scoreL = 0;
+  scoreR = 0;
+
+  $("scoreL").textContent = "0";
+  $("scoreR").textContent = "0";
+}
+
+
+/* =========================
+   時計
+========================= */
+
+function updateClock(){
+
+  let now = new Date();
+
+  let h = String(now.getHours()).padStart(2,"0");
+  let m = String(now.getMinutes()).padStart(2,"0");
+  let s = String(now.getSeconds()).padStart(2,"0");
+
+  let text = h + ":" + m + ":" + s;
+
+  $("clockDisplay").textContent = text;
+
+  if(alarmTime !== null){
+
+    let current =
+      h + ":" + m;
+
+    if(current === alarmTime && s === "00"){
+      beep();
+
+      $("clockStatus").textContent =
+        "アラーム！";
+    }
+  }
+}
+
+
+function setAlarm(){
+
+  alarmTime = $("alarmTime").value;
+
+  if(alarmTime){
+    $("clockStatus").textContent =
+      alarmTime + " にアラーム設定";
+  }
+}
+
+
+function cancelAlarm(){
+
+  alarmTime = null;
+
+  $("clockStatus").textContent =
+    "アラーム解除";
+}
+
+
+/* =========================
+   音
+========================= */
+
+let audioContext = null;
+
+
+function beep(){
+
+  try{
+
+    if(!audioContext){
+      audioContext =
+        new (window.AudioContext ||
+        window.webkitAudioContext)();
+    }
+
+    let oscillator =
+      audioContext.createOscillator();
+
+    let gain =
+      audioContext.createGain();
+
+    oscillator.type = "square";
+    oscillator.frequency.value = 1000;
+
+    gain.gain.setValueAtTime(
+      0.3,
+      audioContext.currentTime
+    );
+
+    gain.gain.exponentialRampToValueAtTime(
+      0.001,
+      audioContext.currentTime + 0.25
+    );
+
+    oscillator.connect(gain);
+    gain.connect(audioContext.destination);
+
+    oscillator.start();
+
+    oscillator.stop(
+      audioContext.currentTime + 0.25
+    );
+
+  }catch(e){
+
+    console.log(e);
+
+  }
+}
+
+
+/* =========================
+   初期化
+========================= */
+
+createProgramInputs();
+
+renderTimerInput();
+
+setInterval(updateClock,1000);
+
+updateClock();
+
+</script>
+
+</body>
+</html>
